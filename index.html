@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucky Block Tsunami Survival 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14213d;--gold:#ffc93c;--panel:rgba(255,248,225,.92);--red:#e5484d;--blue:#2563eb;--green:#2f9e44}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#87ceeb;font-family:"M PLUS Rounded 1c",system-ui,sans-serif;color:var(--ink);user-select:none}
+canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+#hud{position:fixed;inset:0;pointer-events:none;display:none}
+#panel{position:absolute;top:14px;left:14px;background:var(--panel);border:3px solid var(--ink);border-radius:14px;padding:10px 14px;min-width:270px;font-weight:800;font-size:14px;line-height:1.7;box-shadow:0 4px 0 var(--ink)}
+#panel .big{font-size:26px;line-height:1.3}
+#panel button{margin-top:8px;width:100%;pointer-events:auto}
+#escape{position:absolute;top:18px;left:50%;transform:translateX(-50%);width:min(460px,40vw);display:none;text-align:center;font-weight:800;color:#fff;text-shadow:0 2px 0 var(--ink)}
+.track{height:18px;border:3px solid var(--ink);border-radius:10px;background:rgba(255,255,255,.5);overflow:hidden;margin-top:4px}
+.track i{display:block;height:100%;width:0;background:var(--green);transition:width .1s}
+#banner{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);font-size:clamp(22px,3.6vw,42px);font-weight:800;color:#fff;text-align:center;text-shadow:0 4px 0 var(--ink),0 0 12px rgba(0,0,0,.4);display:none;width:90vw}
+#bottom{position:absolute;left:0;right:0;bottom:26px;display:flex;flex-direction:column;align-items:center;gap:10px}
+#meterWrap{display:none;flex-direction:column;align-items:center;gap:8px;color:#fff;font-weight:800;text-shadow:0 2px 0 var(--ink)}
+#meterLane{font-size:22px}
+.meter{position:relative;width:min(560px,74vw);height:30px;border:4px solid var(--ink);border-radius:16px;background:linear-gradient(90deg,#6b7280 0 35%,#3b82f6 35% 65%,#22c55e 65% 90%,#ffc93c 90% 100%);box-shadow:0 4px 0 var(--ink)}
+#meterMark{position:absolute;left:0;top:-10px;width:10px;height:44px;margin-left:-5px;background:#fff;border:3px solid var(--ink);border-radius:5px}
+#meterInfo{font-size:16px}
+#workStatus{display:none;background:var(--gold);border:3px solid var(--ink);border-radius:30px;padding:8px 24px;font-weight:800;font-size:20px;box-shadow:0 4px 0 var(--ink)}
+#cross{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:#fff;border:1px solid var(--ink);opacity:.7}
+button{font-family:inherit;font-weight:800;font-size:15px;color:var(--ink);background:var(--gold);border:3px solid var(--ink);border-radius:12px;padding:8px 16px;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+button:disabled{background:#ddd;color:#888;border-color:#888;box-shadow:0 4px 0 #888;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+#menu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,33,61,.55);z-index:10}
+.card{background:#fff;border:4px solid var(--ink);border-radius:20px;box-shadow:0 8px 0 var(--ink);padding:28px 30px;width:min(92vw,440px);text-align:center}
+.card h1{margin:0 0 4px;font-size:30px;line-height:1.15;color:var(--blue)}
+.card p{margin:6px 0 16px;font-size:14px;line-height:1.7;font-weight:500}
+#loginBtn{width:100%;background:#fff;font-size:17px;padding:12px;display:flex;align-items:center;justify-content:center;gap:10px}
+#playBtn{width:100%;font-size:20px;padding:14px;background:var(--blue);color:#fff}
+#menuMsg{min-height:20px;margin-top:10px;color:var(--red);font-weight:800;font-size:13px}
+#who{font-size:13px;font-weight:800;margin-bottom:10px}
+#signOut{margin-top:12px;font-size:12px;padding:4px 10px;background:#fff}
+#danger{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 160px 40px rgba(229,72,77,0)}
+#rouletteText{position:absolute;left:50%;top:16%;transform:translateX(-50%);display:none;font-size:clamp(28px,5vw,60px);font-weight:800;color:#fff;text-shadow:0 5px 0 var(--ink),0 0 16px rgba(0,0,0,.5);white-space:nowrap}
+#meterLane,#meterInfo{max-width:92vw;text-align:center}
+.card p.hint{font-size:12px;color:#445;margin:0 0 12px}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud">
+  <div id="danger"></div>
+  <div id="panel">
+    <div class="big">💰 <span id="uiMoney">0</span></div>
+    <div>🏦 基地バンク：<span id="uiBank">0</span></div>
+    <div>💪 キックパワー：<span id="uiPower">10</span>（最大飛距離 <span id="uiDist">0</span>m）</div>
+    <div>🏃 スピードLv（逃走中のみ）：<span id="uiSpeed">1</span></div>
+    <div>👾 キャラ：<span id="uiPets">0</span>/10 ／ 収入 <span id="uiInc">0</span>/秒</div>
+    <div>📖 図鑑：<span id="uiDex">0</span>/20</div>
+    <button id="speedBtn">スピード強化 [R]</button>
+  </div>
+  <div id="escape"><div id="escapeText"></div><div class="track"><i id="escapeFill"></i></div></div>
+  <div id="rouletteText"></div>
+  <div id="cross"></div>
+  <div id="banner"></div>
+  <div id="bottom">
+    <div id="meterWrap">
+      <div id="meterLane"></div>
+      <div class="meter" id="meterBar"><i id="meterMark"></i></div>
+      <div id="meterInfo"></div>
+    </div>
+    <div id="workStatus"></div>
+  </div>
+</div>
+
+<div id="menu">
+  <div class="card">
+    <h1>LUCKY BLOCK<br>TSUNAMI SURVIVAL</h1>
+    <p>ダンベルでパワーを溜め、メーターを合わせて遠くへ蹴ろう。<br>着地したゾーンのレアリティのキャラが出る！ 出たキャラを操作して津波から逃げ切れ！</p>
+    <p class="hint">操作：WASD 移動 ／ Space ジャンプ ／ マウス 視点 ／ Q 筋トレ ／ E・クリック キック ／ R スピード強化 ／ C 視点切替（逃走中）</p>
+    <div id="who"></div>
+    <button id="loginBtn">
+      <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Googleでログインして遊ぶ
+    </button>
+    <div id="playBox" style="display:none">
+      <button id="playBtn">クリックして開始</button>
+      <p style="margin:10px 0 0;font-size:12px">Escキーでカーソルを解除（一時停止）できます</p>
+      <button id="signOut">ログアウト</button>
+    </div>
+    <div id="menuMsg"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+/* ================= Firebase ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCpKaYMQNb0pEUcoBQIQvA5rofbpH3NkvY",
+  authDomain: "gigo-f334a.firebaseapp.com",
+  projectId: "gigo-f334a",
+  storageBucket: "gigo-f334a.firebasestorage.app",
+  messagingSenderId: "899759444818",
+  appId: "1:899759444818:web:9583a5db72c59f0e72608b"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ================= 定数・ゲーム式 ================= */
+const $ = id => document.getElementById(id);
+const rnd = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const fmt = n => Math.floor(n).toLocaleString('ja-JP');
+
+const MAX_PETS = 10, MAX_SPEED_LV = 30;
+const LANE_START = -40;            // セーフゾーンとレーンの境目(z)
+const LANE_LEN = 4000, LANE_W = 60, HALF_X = 28.5;
+const WAVE_GAP = 30;               // 出現時、波が背後にいる距離
+const WALK_SPEED = 14;             // 基地・セーフゾーンでの歩く速さ（スピードLvは影響しない）
+const PLATE = { x:0, z:20, hw:6, hd:4.5 };
+const PED = [];
+for (let r = 0; r < 2; r++) for (let i = 0; i < 5; i++) PED.push({ x:-24 + i * 12, z:50 + r * 20 });
+
+const RANKS = [
+  { n:'コモン',         c:0x8d96a3, css:'#d1d5db' },
+  { n:'レア',           c:0x4f7fd6, css:'#93c5fd' },
+  { n:'エピック',       c:0x8b5cc7, css:'#d8b4fe' },
+  { n:'レジェンダリー', c:0xd9a21b, css:'#fcd34d' },
+  { n:'神話級',         c:0xd6406a, css:'#fda4af' }
+];
+const ZONE_LEN = 800;                              // 各レアリティゾーンの長さ(m)
+const BANDS = [0, 800, 1600, 2400, 3200, 4000];    // コモン→レア→エピック→レジェンダリー→神話級
+
+const maxKick  = () => Math.min(3800, Math.round(60 + gs.kickPower * 8));   // キックパワー → 最大飛距離
+const kickDist = m => Math.round(60 + (maxKick() - 60) * m);                 // メーター位置 → 飛距離
+const runSpeed  = () => 16 + 1.5 * (gs.speedLevel - 1);                      // 逃走中だけ反映されるスピード
+const speedCost = () => Math.floor(50 * Math.pow(1.5, gs.speedLevel - 1));
+const waveSpeed = D => 14 + D / 110;                                         // 遠いほど波も速い
+const recLv     = D => Math.max(1, Math.ceil((waveSpeed(D) - 16) / 1.5 + 1));
+/* 着地したゾーン＝レアリティ（確定）。弱い蹴り→手前のゾーン、強い蹴り→奥のゾーン */
+const zoneOf = D => clamp(Math.floor(D / ZONE_LEN), 0, 4);
+
+/* ================= キャラ 20体 ================= */
+const box = (w, h, d, color, x, y, z, parent = scene) => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+  m.position.set(x, y, z); parent.add(m); return m;
+};
+const B = (g, w, h, d, c, x, y, z) => box(w, h, d, c, x, y, z, g);
+const glow = (m, c) => { m.material.emissive.setHex(c); return m; };
+function eyes(g, y, z, sp = .55, s = .7){
+  for (const sx of [-1, 1]){ B(g, s, s * 1.1, .15, 0xffffff, sx * sp, y, z); B(g, s * .45, s * .5, .15, 0x111111, sx * sp, y, z + .1); }
+}
+const SP = [
+  // ---- コモン ----
+  { n:'バナニーノ', r:0, base:4, b:g => { B(g,1.4,3.6,1.4,0xffe135,0,2,0); B(g,.8,.5,.8,0x6b4a2b,0,4,0); eyes(g,2.8,.72); B(g,.5,.4,.9,0x333333,-.4,.2,.2); B(g,.5,.4,.9,0x333333,.4,.2,.2); } },
+  { n:'ポテトゥ・ペロ', r:0, base:5, b:g => { B(g,2.6,2.2,2.2,0xb98b5a,0,1.5,0); B(g,.6,.6,.6,0x8d6a40,.7,2.7,.3); B(g,.5,.5,.5,0x8d6a40,-.8,2.6,-.4); eyes(g,1.9,1.12); B(g,.7,.4,.9,0x6b4a2b,-.7,.2,.2); B(g,.7,.4,.9,0x6b4a2b,.7,.2,.2); } },
+  { n:'サンダルーロ', r:0, base:6, b:g => { B(g,2.4,3.2,.8,0xc68642,0,1.8,0); B(g,2.5,.5,1,0xe5484d,0,1.4,.2); eyes(g,2.6,.45,.5,.8); } },
+  { n:'カプッチョ・カップ', r:0, base:7, b:g => { B(g,2,2.4,2,0xffffff,0,1.4,0); B(g,1.7,.2,1.7,0x5a3a22,0,2.65,0); B(g,.4,1.2,.5,0xffffff,1.3,1.6,0); eyes(g,1.9,1.02); } },
+  // ---- レア ----
+  { n:'ボーボー・ログ丸', r:1, base:12, b:g => { B(g,1.8,4.2,1.8,0x8b5a2b,0,2.2,0); B(g,1.9,.3,1.9,0x5d3a1a,0,4.3,0); B(g,.5,3.2,.5,0xd6a75b,1.7,2.4,.6).rotation.z = -.4; eyes(g,3.3,.92); B(g,.8,.3,.1,0x111111,0,2.6,.92); } },
+  { n:'ワニロ・ボンバ', r:1, base:14, b:g => { B(g,1.8,1.6,4.4,0x3f9b4f,0,1.4,0); B(g,1.4,.9,1.8,0x4cb35e,0,1.2,3); B(g,4.8,.2,1.4,0x9ca3af,0,2.3,-.2); B(g,.8,.8,1.6,0x3f9b4f,0,1.2,-2.8); eyes(g,2.5,1.7,.5,.6); B(g,1.3,.2,.1,0xffffff,0,1,3.95); } },
+  { n:'ペンギーロ・ブルブル', r:1, base:16, b:g => { B(g,2,2.8,1.8,0x1f2937,0,1.8,0); B(g,1.4,2,.2,0xffffff,0,1.6,.95); B(g,.8,.4,.6,0xf59e0b,0,2.7,1.2); B(g,.6,.2,.9,0xf59e0b,-.5,.1,.5); B(g,.6,.2,.9,0xf59e0b,.5,.1,.5); eyes(g,3,.92,.5,.7); } },
+  { n:'サメーロ・スニーカ', r:1, base:18, b:g => { B(g,1.9,2.2,4,0x4a90d9,0,2.5,0); B(g,1.5,.8,3.6,0xe5e7eb,0,1.7,0); B(g,.25,1.4,1.2,0x3b6fb0,0,4.3,-.3); for (const sx of [-1,1]){ B(g,.4,1,.4,0xffd8a8,sx*.6,.9,.6); B(g,.9,.6,1.4,0xef4444,sx*.6,.3,.8); } eyes(g,3.2,2.05,.55,.6); B(g,1.4,.25,.1,0xffffff,0,2.3,2.05); } },
+  // ---- エピック ----
+  { n:'バレリーヌ・カプチーナ', r:2, base:30, b:g => { for (const sx of [-1,1]) B(g,.3,1.6,.3,0xffd8a8,sx*.3,.8,0); B(g,3.4,.3,3.4,0xf9a8d4,0,1.8,0); B(g,1.2,1.3,.9,0xf472b6,0,2.7,0); B(g,2.2,1.6,2.2,0xffffff,0,4.2,0); B(g,1.9,.2,1.9,0x5a3a22,0,5.1,0); eyes(g,4.2,1.12); } },
+  { n:'チンパニーニ・バナナ', r:2, base:34, b:g => { B(g,1.2,2.6,1.2,0xffe135,0,2.4,0); B(g,1.9,1.7,1.7,0x6b4226,0,4.5,0); B(g,1.2,1,.2,0xf2c9a0,0,4.4,.9); for (const sx of [-1,1]){ B(g,.5,.5,.3,0x6b4226,sx*1.1,4.6,0); B(g,.5,2,.5,0x6b4226,sx*.95,2.6,.2); B(g,.5,.4,.9,0x333333,sx*.4,.2,.2); } eyes(g,4.9,.95,.4,.6); } },
+  { n:'パタピ・ツリーノ', r:2, base:38, b:g => { B(g,1.8,3.2,1.8,0x8b5a2b,0,1.8,0); B(g,3.4,1.6,3.4,0x2e9e44,0,4.6,0); B(g,2.2,1.2,2.2,0x3dbb54,0,5.8,0); B(g,.5,.5,1.8,0xc68642,0,2.6,1.6); eyes(g,3.4,.95,.5,.6); } },
+  { n:'アサシーノ・カプッチ', r:2, base:42, b:g => { B(g,2,2.4,2,0x1f2937,0,1.6,0); B(g,1.7,.2,1.7,0x3b2417,0,2.9,0); B(g,2.1,.35,2.1,0xdc2626,0,2.4,0); eyes(g,1.9,1.02,.5,.55); for (const sx of [-1,1]){ B(g,.25,2.2,.25,0xd1d5db,sx*1.5,2.2,.5); B(g,.4,.5,.4,0x111111,sx*1.5,.9,.5); } } },
+  // ---- レジェンダリー ----
+  { n:'ヤカーン・ドゥンドゥン', r:3, base:70, b:g => { glow(B(g,2.8,2.6,2.8,0xffd34d,0,1.9,0),0x332200); B(g,1.4,.5,1.4,0xf59e0b,0,3.45,0); B(g,.5,.5,.5,0xf59e0b,0,3.9,0); B(g,1.2,.6,.6,0xffd34d,1.9,2.4,0); B(g,.5,1.6,.5,0xb45309,-1.8,2.2,0); eyes(g,2.3,1.42,.6,.8); B(g,1,.3,.1,0x111111,0,1.4,1.42); } },
+  { n:'ヴァッカ・サトゥルノ', r:3, base:80, b:g => { B(g,2.2,2,3.6,0xffffff,0,2.2,0); B(g,1.2,.1,1.2,0x111111,.6,3.25,.5); B(g,1,.1,1.2,0x111111,-.6,3.25,-.8); B(g,1.6,1.5,1.5,0xffffff,0,3.2,2.3); B(g,1.1,.7,.2,0xf9a8d4,0,2.9,3.1); B(g,.3,.6,.3,0xfde68a,-.7,4.2,2.2); B(g,.3,.6,.3,0xfde68a,.7,4.2,2.2); for (const sx of [-1,1]) for (const sz of [-1.2,1.2]) B(g,.5,1.2,.5,0xffffff,sx*.7,.6,sz); eyes(g,3.5,3.07,.45,.5); glow(B(g,1.8,1.8,1.8,0xf59e0b,0,5.5,-.2),0x442200); B(g,3.8,.15,3.8,0xfde68a,0,5.5,-.2); } },
+  { n:'カネローン・ドラゴ', r:3, base:90, b:g => { B(g,1.8,1.8,4.2,0xe2631f,0,1.8,0); for (const z of [-1.2,0,1.2]) B(g,1.9,.25,.4,0xfde68a,0,2.8,z); B(g,1.6,1.4,1.6,0xf08040,0,2.7,2.9); for (const sx of [-1,1]){ B(g,.3,.8,.3,0xfde68a,sx*.5,3.7,2.8); B(g,.2,2.2,2.2,0xb91c1c,sx*1.1,3.3,-.5); B(g,.5,.9,.5,0xb45309,sx*.6,.45,1.2); B(g,.5,.9,.5,0xb45309,sx*.6,.45,-1.2); } B(g,.8,.8,1.8,0xe2631f,0,1.4,-3); eyes(g,3,3.72,.45,.5); } },
+  { n:'ストロベリ・ファンテ', r:3, base:100, b:g => { B(g,3.2,3,3,0xf43f5e,0,2,0); for (const p of [[-.8,2.6],[.9,2.2],[0,1.4],[-1,1.2]]) B(g,.25,.25,.1,0xfde68a,p[0],p[1],1.52); B(g,2.6,.5,2.6,0x22c55e,0,3.7,0); B(g,.9,.9,2.2,0xf472b6,0,1.2,2.2); for (const sx of [-1,1]) B(g,.2,1.6,1.6,0xf9a8d4,sx*1.7,2.6,.2); eyes(g,2.8,1.52,.8,.7); } },
+  // ---- 神話級 ----
+  { n:'ニュクレアロ・ディノ', r:4, base:160, b:g => { glow(B(g,2.4,3.2,2.4,0x39ff14,0,2.6,0),0x1b8a0a); for (const y of [3.6,4.6]) glow(B(g,.5,1,.5,0xfacc15,0,y,-1.3),0x665500); glow(B(g,1.8,1.6,2.4,0x55ff33,0,4.9,1),0x1b8a0a); glow(B(g,1,1,2.5,0x39ff14,0,1.4,-2),0x1b8a0a); for (const sx of [-1,1]) B(g,.8,1.4,.8,0x2ac90f,sx*.7,.7,.2); eyes(g,5.2,2.22,.45,.5); } },
+  { n:'キング・トラララ', r:4, base:190, b:g => { B(g,2.4,2.8,4.8,0x2563eb,0,3.2,0); B(g,2,.8,4.4,0xe5e7eb,0,2.1,0); B(g,.3,1.8,1.6,0x1d4ed8,0,5.2,-.4); for (const sx of [-1,0,1]){ B(g,.4,1.4,.4,0xffd8a8,sx*.8,1.2,.8); B(g,.9,.7,1.5,0xef4444,sx*.8,.35,1); } glow(B(g,1.8,.6,1.8,0xfacc15,0,4.9,1.4),0x554400); eyes(g,4,2.45,.7,.7); B(g,1.8,.3,.1,0xffffff,0,3,2.45); } },
+  { n:'メデュースカ・グラウプ', r:4, base:230, b:g => { glow(B(g,2.8,2.6,2.8,0x7c3aed,0,4.2,0),0x2a1260); for (let i = 0; i < 6; i++){ const a = i / 6 * 6.283; B(g,.5,3,.5,0xa78bfa,Math.cos(a)*1.1,1.5,Math.sin(a)*1.1); } for (const sx of [-.8,0,.8]) B(g,.3,1,.3,0x22c55e,sx,5.9,0); eyes(g,4.3,1.42,.8,.9); } },
+  { n:'ブレインロット・ゴッド', r:4, base:300, b:g => { glow(B(g,1.6,2.4,1.2,0xfacc15,0,1.6,0),0x554400); glow(B(g,3,2.4,3,0xf9a8d4,0,4,0),0x552244); for (const p of [[-1,5.3],[1,5.3],[0,5.5]]) B(g,1.3,1,1.3,0xf472b6,p[0],p[1],0); B(g,2.4,.5,.2,0x111111,0,4.2,1.55); glow(B(g,2.8,.2,2.8,0xfde047,0,6.9,0),0x886600); B(g,.4,1,.4,0xfacc15,-.4,.5,0); B(g,.4,1,.4,0xfacc15,.4,.5,0); B(g,1.2,.3,.1,0xe5484d,0,3.2,1.55); } }
+];
+const rankFromInc = inc => [120, 50, 20, 8].findIndex(t => inc >= t) >= 0 ? 4 - [120, 50, 20, 8].findIndex(t => inc >= t) : 0;
+
+/* ================= セーブデータ ================= */
+const defaultState = () => ({ money:0, kickPower:10, speedLevel:1, pets:[], dex:[], bank:0, bestDist:0, lastSeen:0 });
+let gs = defaultState();
+let uid = null, userName = '', saveEnabled = false, started = false, offlineMsg = '';
+const totalIncome = () => gs.pets.reduce((s, p) => s + p.inc, 0);
+const userRef = () => doc(db, 'users', uid);
+
+async function loadData(){
+  saveEnabled = false;
+  try {
+    const snap = await getDoc(userRef());
+    if (snap.exists()){
+      const d = snap.data();
+      gs = { ...defaultState(), ...d };
+      gs.money = Math.max(0, +gs.money || 0);
+      gs.bank = Math.max(0, +gs.bank || 0);
+      gs.kickPower = Math.max(10, +gs.kickPower || 10);
+      gs.speedLevel = clamp(Math.floor(+gs.speedLevel || 1), 1, MAX_SPEED_LV);
+      gs.pets = (Array.isArray(gs.pets) ? gs.pets : []).filter(p => p && p.inc > 0).slice(0, MAX_PETS).map(p => {
+        if (Number.isInteger(p.sp) && SP[p.sp]) return { sp:p.sp, inc:+p.inc };
+        const pool = SP.map((s, i) => i).filter(i => SP[i].r === rankFromInc(p.inc));   // 旧データの互換
+        return { sp:pool[Math.floor(Math.random() * pool.length)], inc:+p.inc };
+      });
+      gs.dex = [...new Set([...(Array.isArray(gs.dex) ? gs.dex : []), ...gs.pets.map(p => p.sp)])].filter(i => SP[i]);
+      if (gs.lastSeen){
+        const sec = Math.min(7200, (Date.now() - gs.lastSeen) / 1000), gain = totalIncome() * sec;
+        if (gain >= 1){ gs.bank += gain; offlineMsg = `留守中に基地が ${fmt(gain)}金 稼いだ！`; }
+      }
+    } else {
+      gs = defaultState();
+      await setDoc(userRef(), { ...gs, lastSeen:Date.now() });
+    }
+    saveEnabled = true;
+  } catch (e){
+    $('menuMsg').textContent = 'セーブデータにアクセスできません（Firestoreを作成し、ルールを確認してください）: ' + (e.code || e.message);
+  }
+}
+let saving = false;
+async function saveData(){
+  if (!uid || !saveEnabled || saving) return;
+  saving = true;
+  try { gs.lastSeen = Date.now(); await setDoc(userRef(), JSON.parse(JSON.stringify(gs))); }
+  catch (e){ console.warn('save failed', e); }
+  saving = false;
+}
+setInterval(saveData, 20000);
+addEventListener('pagehide', saveData);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveData(); });
+
+let lastTick = Date.now();
+setInterval(() => {
+  const now = Date.now(), dt = Math.min((now - lastTick) / 1000, 7200); lastTick = now;
+  if (uid && saveEnabled) gs.bank += totalIncome() * dt;
+}, 500);
+
+/* ================= Three.js 基本 ================= */
+const canvas = $('gameCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.FogExp2(0x87ceeb, 0.0009);
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.5, 5000);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x6b8f5a, 0.85));
+const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(80, 150, 60); scene.add(sun);
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+function makeLabel(w, h, sx, sy){
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'), tex = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true }));
+  sp.scale.set(sx, sy, 1);
+  sp.userData.set = (lines, color = '#fff', bg = 'rgba(20,33,61,.78)') => {
+    g.clearRect(0, 0, w, h); g.fillStyle = bg; g.beginPath();
+    if (g.roundRect) g.roundRect(0, 0, w, h, h * .2); else g.rect(0, 0, w, h);
+    g.fill(); g.fillStyle = color; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const n = lines.length;
+    lines.forEach((t, i) => { g.font = `800 ${Math.floor(h / (n + .7))}px "M PLUS Rounded 1c", sans-serif`; g.fillText(t, w / 2, h * (i + .5) / n); });
+    tex.needsUpdate = true;
+  };
+  return sp;
+}
+
+/* ================= ワールド ================= */
+box(3000, 0.4, 9000, 0x5aa84a, 0, -0.6, -2000);                       // 地面
+box(60, 0.4, 90, 0x86efac, 0, -0.2, 45);                               // 基地
+box(60, 0.4, 40, 0xbfdbfe, 0, -0.2, -20);                              // セーフゾーン
+box(62, 3, 2, 0x9ca3af, 0, 1.5, 91);                                   // 基地の奥の壁
+box(60, 0.2, 1.2, 0xffffff, 0, 0, LANE_START);                         // スタートライン
+
+// 1本の長いレーン。距離ごとにレアリティ帯の色が変わる
+RANKS.forEach((R, i) => {
+  const a = BANDS[i], b = BANDS[i + 1];
+  box(LANE_W, 0.4, b - a, R.c, 0, -0.2, LANE_START - (a + b) / 2);
+  if (i > 0) box(LANE_W, 0.3, 1, 0xffffff, 0, 0, LANE_START - a);
+  const s = makeLabel(512, 150, 16, 4.7); s.userData.set([R.n + 'ゾーン', `${a}〜${b}m`], R.css);
+  s.position.set(-21, 7, LANE_START - a - 1); scene.add(s);
+});
+for (let m = 500; m <= 3500; m += 500){
+  if (!BANDS.includes(m)) box(LANE_W, 0.3, 0.8, 0xffffff, 0, 0, LANE_START - m);
+  const t = makeLabel(256, 96, 8, 3); t.userData.set([m + 'm']); t.position.set(22, 5, LANE_START - m); scene.add(t);
+}
+for (const sx of [-1, 1]) box(1.6, 8, 4131, 0x6b7280, sx * 31, 3.6, (91 + LANE_START - LANE_LEN) / 2);   // 左右の壁
+
+// セーフゾーンのゲートと看板
+for (const sx of [-1, 1]) box(2.5, 15, 2.5, 0xef4444, sx * 29, 7.5, 0);
+box(61, 2.5, 2.5, 0xef4444, 0, 14.5, 0);
+{ const s = makeLabel(512, 128, 26, 6.5); s.userData.set(['SAFE ZONE'], '#bfdbfe', 'rgba(20,33,61,.85)'); s.position.set(0, 18.5, 0); scene.add(s); }
+{ const s = makeLabel(640, 170, 26, 7); s.userData.set(['ラッキーレーン', '着地したゾーンのレアリティが当たる！'], '#fde68a'); s.position.set(0, 12, LANE_START); scene.add(s); }
+
+// 感圧板（金の受け取り）
+const plate = box(12, 0.3, 9, 0xfacc15, PLATE.x, 0.1, PLATE.z);
+{ const t = makeLabel(512, 160, 10, 3.1); t.userData.set(['💰 受け取り'], '#14213d', 'rgba(255,255,255,0)');
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(10, 3.1), new THREE.MeshBasicMaterial({ map:t.material.map, transparent:true }));
+  p.rotation.x = -Math.PI / 2; p.position.set(PLATE.x, 0.3, PLATE.z); scene.add(p); }
+const bankLabel = makeLabel(512, 200, 14, 5.5); bankLabel.position.set(PLATE.x, 8, PLATE.z); scene.add(bankLabel);
+
+// ダンベル
+function makeDumbbell(scale = 1){
+  const g = new THREE.Group(), steel = new THREE.MeshLambertMaterial({ color:0x2b2f3a });
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, 3.4, 10), steel); bar.rotation.z = Math.PI / 2; g.add(bar);
+  for (const sx of [-1, 1]){ const p = new THREE.Mesh(new THREE.CylinderGeometry(.85, .85, .55, 16), new THREE.MeshLambertMaterial({ color:0x4b5563 })); p.rotation.z = Math.PI / 2; p.position.x = sx * 1.4; g.add(p); }
+  g.scale.setScalar(scale); return g;
+}
+{ box(8, 1.4, 3, 0x7c4a2d, -22, 0.7, 14);
+  for (let i = -1; i <= 1; i++){ const d = makeDumbbell(.5); d.position.set(-22 + i * 2.4, 1.9, 14); scene.add(d); }
+  const s = makeLabel(384, 110, 9, 2.6); s.userData.set(['Q：筋トレ']); s.position.set(-22, 5.5, 14); scene.add(s); }
+
+// キャラ置き場
+const pedestals = PED.map(p => {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 4.8, 0.6, 28), new THREE.MeshLambertMaterial({ color:0x6b7280 }));
+  m.position.set(p.x, 0.3, p.z); scene.add(m); return m;
+});
+const petsGroup = new THREE.Group(); scene.add(petsGroup);
+let petMeshes = [];
+
+function makePetModel(spIdx){ const g = new THREE.Group(); SP[spIdx].b(g); return g; }
+function rebuildPets(){
+  while (petsGroup.children.length){
+    const c = petsGroup.children.pop();
+    c.traverse(o => { if (o.material && o.material.map) o.material.map.dispose(); });
+  }
+  petMeshes = [];
+  pedestals.forEach((ped, i) => ped.material.color.setHex(gs.pets[i] ? RANKS[SP[gs.pets[i].sp].r].c : 0x6b7280));
+  gs.pets.forEach((p, i) => {
+    const g = makePetModel(p.sp); g.position.set(PED[i].x, 0.6, PED[i].z); g.rotation.y = Math.PI;
+    g.userData.phase = rnd(0, 6.28); petsGroup.add(g); petMeshes.push(g);
+    const L = RANKS[SP[p.sp].r], s = makeLabel(480, 170, 12, 4.2);
+    s.userData.set([SP[p.sp].n, `${L.n} +${p.inc}/秒`], L.css); s.position.set(PED[i].x, 10, PED[i].z); petsGroup.add(s);
+  });
+}
+
+/* ラッキーブロック */
+function blockTexture(){
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = '#f7c61b'; g.fillRect(0, 0, 128, 128);
+  g.strokeStyle = '#b8860b'; g.lineWidth = 10; g.strokeRect(5, 5, 118, 118);
+  g.fillStyle = '#fff'; g.strokeStyle = '#7a5600'; g.lineWidth = 6;
+  g.font = 'bold 92px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.strokeText('?', 64, 70); g.fillText('?', 64, 70);
+  return new THREE.CanvasTexture(c);
+}
+const blockGeo = new THREE.BoxGeometry(1, 1, 1);
+const blockMat = new THREE.MeshLambertMaterial({ map:blockTexture(), emissive:0x442b00 });
+const flyBlock = new THREE.Mesh(blockGeo, blockMat); flyBlock.scale.setScalar(4); flyBlock.visible = false; scene.add(flyBlock);
+
+/* 津波（レーンのランク色・半透明・深度書き込みなしでキャラに隠れない） */
+const wave = { group:new THREE.Group(), front:0, speed:0, t:0 };
+{ const body = box(LANE_W + 2, 28, 24, 0x2563eb, 0, 14, 0, wave.group);
+  body.material.transparent = true; body.material.opacity = .78; body.material.depthWrite = false; body.renderOrder = 2;
+  const foam = box(LANE_W + 2, 4, 26, 0xffffff, 0, 29.5, 0, wave.group); foam.material.transparent = true; foam.material.opacity = .9; foam.material.depthWrite = false; foam.renderOrder = 2;
+  const front = box(LANE_W + 2, 16, 1, 0xbfdbfe, 0, 8, 12.4, wave.group); front.material.transparent = true; front.material.opacity = .8; front.material.depthWrite = false; front.renderOrder = 2;
+  wave.body = body; wave.group.visible = false; scene.add(wave.group); }
+const placeWave = () => wave.group.position.set(0, 0, wave.front - 12);
+
+/* プレイヤー（自分のキャラ） */
+function makeCharacter(){
+  const root = new THREE.Group(), hips = new THREE.Group(); hips.position.y = 3; root.add(hips);
+  box(2.2, 2.6, 1.2, 0xef4444, 0, 1.3, 0, hips);
+  box(1.6, 1.6, 1.6, 0xffd8a8, 0, 3.4, 0, hips);
+  box(1.7, .5, 1.7, 0x14213d, 0, 4.3, 0, hips);
+  for (const sx of [-1, 1]) box(.28, .32, .2, 0x111111, sx * .4, 3.5, .82, hips);
+  const mkLimb = (x, y, w, h, color) => { const piv = new THREE.Group(); piv.position.set(x, y, 0); box(w, h, w, color, 0, -h / 2, 0, piv); hips.add(piv); return piv; };
+  const armL = mkLimb(-1.5, 2.4, .8, 2.3, 0xffd8a8), armR = mkLimb(1.5, 2.4, .8, 2.3, 0xffd8a8);
+  const legL = mkLimb(-.6, 0, 1, 3, 0x1d4ed8),       legR = mkLimb(.6, 0, 1, 3, 0x1d4ed8);
+  const dumb = makeDumbbell(1); dumb.position.set(0, 1.9, 2.1); dumb.visible = false; hips.add(dumb);
+  const held = new THREE.Mesh(blockGeo, blockMat); held.scale.setScalar(2.6); held.position.y = 8.8; held.visible = false; root.add(held);
+  root.userData = { hips, armL, armR, legL, legR, dumb, held };
+  return root;
+}
+const player = makeCharacter(); player.position.set(0, 0, 30); scene.add(player);
+const shadow = new THREE.Mesh(new THREE.CircleGeometry(1.8, 20), new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:.28 }));
+shadow.rotation.x = -Math.PI / 2; scene.add(shadow);
+const pst = { vel:new THREE.Vector3(), vy:0, onGround:true, walk:0, rep:0, face:Math.PI, kickAnim:0 };
+
+/* 逃げるキャラ（ブロックから出たキャラ） */
+let runner = null;   // { g, sp, vy, y, t }
+
+/* パーティクル */
+const parts = [], pMats = {}, pGeo = new THREE.BoxGeometry(.5, .5, .5);
+function burst(pos, color, n = 20, spd = 8){
+  pMats[color] = pMats[color] || new THREE.MeshBasicMaterial({ color });
+  for (let i = 0; i < n; i++){
+    const m = new THREE.Mesh(pGeo, pMats[color]); m.position.copy(pos); scene.add(m);
+    parts.push({ m, v:new THREE.Vector3(rnd(-1, 1) * spd, rnd(.3, 1.4) * spd, rnd(-1, 1) * spd), life:rnd(.7, 1.3) });
+  }
+}
+
+/* ================= 状態・入力 ================= */
+let state = 'idle';            // idle(自分を操作) | flying | roulette | escape(キャラを操作)
+let lifting = false, running = false, locked = false, dragMode = false;
+const keys = {};
+const cam = { yaw:0, pitch:.45, dist:17, mul:1, goal:null };
+const camTarget = new THREE.Vector3(0, 4.5, 30);
+let K = null, roul = null;
+let meterT = 0, meterVal = 0, meterOn = false;
+
+const inSafe = () => player.position.z < 0 && player.position.z > LANE_START;
+const tri = t => 1 - Math.abs((t % 1) * 2 - 1);
+const lerpAngle = (a, b, t) => a + ((((b - a + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI) * t;
+
+function showMessage(text, ms = 2500, color = '#fff'){
+  const b = $('banner'); b.textContent = text; b.style.color = color; b.style.display = 'block';
+  clearTimeout(showMessage.t); showMessage.t = setTimeout(() => b.style.display = 'none', ms);
+}
+function showRoulette(text, color = '#fff'){
+  const el = $('rouletteText'); if (!text){ el.style.display = 'none'; return; }
+  el.textContent = text; el.style.color = color; el.style.display = 'block';
+}
+
+addEventListener('keydown', e => {
+  if (e.code === 'Escape' && dragMode && running){ running = false; showMenu(); return; }
+  if (!running) return;
+  keys[e.code] = true;
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.repeat) return;
+  if (e.code === 'KeyQ') toggleWorkout();
+  if (e.code === 'KeyE') startKick();
+  if (e.code === 'KeyR') upgradeSpeed();
+  if (e.code === 'KeyC') toggleView();
+});
+addEventListener('keyup', e => keys[e.code] = false);
+addEventListener('mousemove', e => {
+  if (!running) return;
+  if (!(locked || (dragMode && (e.buttons & 1)))) return;
+  cam.yaw -= e.movementX * 0.0025;
+  cam.pitch = clamp(cam.pitch + e.movementY * 0.0025, -0.1, 1.35);
+});
+addEventListener('mousedown', e => { if (running && locked && e.button === 0) startKick(); });
+addEventListener('wheel', e => { if (running) cam.dist = clamp(cam.dist + Math.sign(e.deltaY) * 2, 7, 40); }, { passive:true });
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === canvas;
+  if (locked){ running = true; started = true; hideMenu(); }
+  else if (!dragMode){ running = false; for (const k in keys) keys[k] = false; showMenu(); }
+});
+document.addEventListener('pointerlockerror', () => { dragMode = true; running = true; started = true; hideMenu(); });
+
+/* ================= アクション ================= */
+function toggleWorkout(){
+  if (state !== 'idle'){ showMessage('今は筋トレできない！', 1500, '#fca5a5'); return; }
+  lifting = !lifting; pst.vel.set(0, 0, 0);
+  if (lifting) showMessage('ダンベルでスクワット！パワーUP！', 1500, '#fde68a'); else saveData();
+}
+function upgradeSpeed(){
+  if (gs.speedLevel >= MAX_SPEED_LV){ showMessage('スピードは最大！', 1500, '#93c5fd'); return; }
+  const c = speedCost();
+  if (gs.money < c){ showMessage(`金が足りない！（${fmt(c)}金）`, 1500, '#fca5a5'); return; }
+  gs.money -= c; gs.speedLevel++; saveData();
+  showMessage(`スピードUP！ Lv${gs.speedLevel}（逃走中に反映）`, 1800, '#93c5fd');
+}
+function toggleView(){   // 逃走中：後ろから／前から（波が見える）
+  if (state !== 'escape') return;
+  cam.goal = Math.cos(cam.yaw) < 0 ? 0 : Math.PI;
+}
+function targetPos(){
+  if (state === 'flying') return flyBlock.position.clone();
+  if (state === 'roulette') return new THREE.Vector3(K.landX, 4, K.landZ);
+  if (state === 'escape' && runner) return runner.g.position.clone().setY(runner.g.position.y + 3.5);
+  return player.position.clone().setY(player.position.y + 4.5);
+}
+const snapCam = () => camTarget.copy(targetPos());
+
+/* メーターで止めてキック */
+function startKick(){
+  if (!meterOn) return;
+  const D = kickDist(meterVal);
+  K = { D, m:meterVal, landX:rnd(-12, 12), landZ:LANE_START - D, sx:player.position.x, sz:player.position.z,
+        t:0, dur:Math.min(7, 2.4 + D / 450), peak:25 + D * .12 };
+  gs.bestDist = Math.max(gs.bestDist, D);
+  player.position.y = 0; pst.vy = 0; pst.vel.set(0, 0, 0); pst.kickAnim = .45;
+  state = 'flying'; meterOn = false;
+  flyBlock.visible = true; flyBlock.position.set(K.sx, 10, K.sz);
+  cam.yaw = 0; cam.pitch = .4; cam.mul = 2; cam.goal = null; snapCam();
+  showMessage(`${D}m キック！！${K.m >= .9 ? ' PERFECT!' : ''}`, 2200, K.m >= .9 ? '#fde047' : '#fff');
+}
+function pickSpecies(D){
+  const r = zoneOf(D), pool = SP.map((s, i) => i).filter(i => SP[i].r === r);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/* ルーレット用のシルエット */
+const silMat = new THREE.MeshBasicMaterial({ color:0x0b1020 });
+const sils = {};
+function getSil(sp){
+  if (!sils[sp]){
+    const g = makePetModel(sp); g.traverse(o => { if (o.isMesh) o.material = silMat; });
+    g.scale.setScalar(1.5); g.visible = false; scene.add(g); sils[sp] = g;
+  }
+  return sils[sp];
+}
+function showSil(sp){
+  for (const k in sils) sils[k].visible = false;
+  if (sp === null) return;
+  const g = getSil(sp); g.position.set(K.landX, 0, K.landZ); g.rotation.set(0, 0, 0); g.visible = true;
+}
+
+/* ブロックが着地 → シルエットがルーレット → 「デン！」で確定 → 逃走開始 */
+function landBlock(){
+  burst(new THREE.Vector3(K.landX, 3, K.landZ), 0xf7c61b, 45, 16);
+  flyBlock.visible = false;
+  K.sp = pickSpecies(K.D);
+  K.inc = Math.max(1, Math.round(SP[K.sp].base * (1 + K.D / 1500) * rnd(.9, 1.1)));
+  const seq = [], times = []; let tsum = 0, dtv = .07, last = -1;
+  while (tsum < 3.2){
+    let c; do { c = Math.floor(Math.random() * SP.length); } while (c === last);
+    last = c; seq.push(c); tsum += dtv; times.push(tsum); dtv *= 1.16;
+  }
+  roul = { seq, times, t:0, idx:-1, phase:'spin', hold:0 };
+  state = 'roulette'; cam.yaw = 0; cam.pitch = .28; cam.mul = .85; cam.goal = null; snapCam();
+  showRoulette('ドゥルルルルル…', '#fff');
+  showMessage(`${RANKS[zoneOf(K.D)].n}ゾーンに着地！ 中身は…`, 2600, RANKS[zoneOf(K.D)].css);
+}
+function updateRoulette(dt){
+  roul.t += dt;
+  if (roul.phase === 'spin'){
+    let idx = 0; while (idx < roul.times.length && roul.t >= roul.times[idx]) idx++;
+    if (idx >= roul.times.length){
+      roul.phase = 'reveal'; roul.hold = 0; showSil(null);
+      const g = makePetModel(K.sp); g.scale.setScalar(1.5); g.position.set(K.landX, 0, K.landZ);
+      scene.add(g); runner = { g, sp:K.sp, y:0, vy:0, t:0 };
+      const R = RANKS[SP[K.sp].r];
+      burst(new THREE.Vector3(K.landX, 4, K.landZ), R.c, 45, 16); burst(new THREE.Vector3(K.landX, 4, K.landZ), 0xffffff, 25, 10);
+      showRoulette(`デン！ ${SP[K.sp].n}（${R.n}）`, R.css);
+      return;
+    }
+    if (idx !== roul.idx){ roul.idx = idx; showSil(roul.seq[idx]); }
+    const g = sils[roul.seq[idx]]; if (g){ g.rotation.z = Math.sin(roul.t * 40) * .05; g.scale.setScalar(1.5 + Math.sin(roul.t * 25) * .05); }
+  } else {
+    roul.hold += dt;
+    if (runner) runner.g.position.y = Math.abs(Math.sin(roul.hold * 9)) * .5;
+    if (roul.hold > 1.2) startRun();
+  }
+}
+function startRun(){
+  state = 'escape'; roul = null; showRoulette(null);
+  wave.front = K.landZ - WAVE_GAP; wave.speed = waveSpeed(K.D); wave.t = 0; placeWave(); wave.group.visible = true;
+  cam.goal = Math.PI; cam.pitch = .35; cam.mul = 1.15;          // 三人称（後ろ）視点で走り出す
+  $('escape').style.display = 'block';
+  showMessage('走れ！！ Wでゴールへ！', 2200, '#ff8787');
+}
+function removeRunner(){ if (runner){ scene.remove(runner.g); runner = null; } }
+function endEscape(){
+  state = 'idle'; roul = null; showRoulette(null); showSil(null);
+  wave.group.visible = false; $('escape').style.display = 'none'; $('danger').style.boxShadow = 'inset 0 0 160px 40px rgba(229,72,77,0)';
+  removeRunner(); cam.yaw = 0; cam.pitch = .45; cam.mul = 1; cam.goal = null; pst.face = Math.PI; snapCam();   // 自分のキャラに戻る
+}
+function die(){
+  const name = SP[K.sp].n;
+  burst(runner.g.position.clone().setY(3), 0x60a5fa, 45, 16);
+  endEscape();
+  showMessage(`${name} は波に飲まれた…`, 3000, '#bfdbfe');
+}
+function winEscape(){
+  const sp = K.sp, inc = K.inc, R = RANKS[SP[sp].r];
+  burst(runner.g.position.clone().setY(3), 0x86efac, 40, 14);
+  endEscape();
+  if (!gs.dex.includes(sp)) gs.dex.push(sp);
+  const pet = { sp, inc };
+  let msg;
+  if (gs.pets.length < MAX_PETS){ gs.pets.push(pet); msg = `生還！ ${SP[sp].n}（${R.n}）を基地に配置！ +${inc}/秒`; }
+  else {
+    let mi = 0; gs.pets.forEach((p, i) => { if (p.inc < gs.pets[mi].inc) mi = i; });
+    if (inc > gs.pets[mi].inc){ gs.pets[mi] = pet; msg = `生還！ 基地が満員なので弱いキャラと入れ替えた（+${inc}/秒）`; }
+    else { const bonus = inc * 30; gs.money += bonus; msg = `生還！ 基地が満員なのでボーナス ${fmt(bonus)}金！`; }
+  }
+  showMessage(msg, 3800, R.css);
+  rebuildPets(); saveData();
+}
+
+/* 感圧板 */
+let plateOn = false, plateCool = 0;
+function checkPlate(dt){
+  const p = player.position;
+  const on = state === 'idle' && Math.abs(p.x - PLATE.x) < PLATE.hw && Math.abs(p.z - PLATE.z) < PLATE.hd && p.y < 2;
+  plate.position.y += ((on ? 0 : 0.1) - plate.position.y) * Math.min(1, dt * 15);
+  if (on){
+    plateCool -= dt;
+    if (!plateOn || plateCool <= 0){ collectBank(plateOn); plateCool = 1; }
+  }
+  plateOn = on;
+}
+function collectBank(silent){
+  const n = Math.floor(gs.bank);
+  if (n < 1) return;
+  gs.money += n; gs.bank -= n; saveData();
+  if (!silent) showMessage(`🏦 ${fmt(n)}金 受け取った！`, 2000, '#fde68a');
+}
+
+/* ================= 毎フレーム更新 ================= */
+let labelTimer = 0;
+
+/* 自分のキャラ：基地では常に普通の速さ（スピードLvは関係なし） */
+function movePlayer(dt){
+  let f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+  let r = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  if (lifting) f = r = 0;
+  const sy = Math.sin(cam.yaw), cy = Math.cos(cam.yaw);
+  let dx = -sy * f + cy * r, dz = -cy * f - sy * r;
+  const len = Math.hypot(dx, dz); if (len > 0){ dx /= len; dz /= len; }
+  const k = 1 - Math.exp(-14 * dt);
+  pst.vel.x += (dx * WALK_SPEED - pst.vel.x) * k; pst.vel.z += (dz * WALK_SPEED - pst.vel.z) * k;
+  const pos = player.position;
+  pos.x = clamp(pos.x + pst.vel.x * dt, -HALF_X, HALF_X);
+  pos.z = clamp(pos.z + pst.vel.z * dt, LANE_START + 1, 86);       // 自分のキャラはレーンに入れない
+  if (keys.Space && pst.onGround && !lifting){ pst.vy = 20; pst.onGround = false; }
+  pst.vy -= 55 * dt; pos.y += pst.vy * dt;
+  if (pos.y <= 0){ pos.y = 0; pst.vy = 0; pst.onGround = true; }
+  let target = pst.face;
+  if (lifting) target = cam.yaw;
+  else if (len > 0) target = Math.atan2(dx, dz);
+  else if (inSafe()) target = Math.PI;
+  pst.face = lerpAngle(pst.face, target, 1 - Math.exp(-12 * dt));
+  player.rotation.y = pst.face;
+}
+
+/* 逃げるキャラ：スピードLvが速さに反映される */
+function moveRunner(dt){
+  const sp = runSpeed(), g = runner.g;
+  const fz = (keys.KeyW || keys.ArrowUp) ? 1 : (keys.KeyS || keys.ArrowDown) ? -.35 : 0;
+  let r = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  r *= Math.cos(cam.yaw) >= 0 ? 1 : -1;                              // 画面の左右に合わせる
+  const vx = r * sp * .8, vz = fz * sp, mv = Math.abs(vx) + Math.abs(vz);
+  g.position.x = clamp(g.position.x + vx * dt, -(LANE_W / 2 - 2.5), LANE_W / 2 - 2.5);
+  g.position.z = clamp(g.position.z + vz * dt, LANE_START - LANE_LEN + 20, LANE_START + 6);
+  if (keys.Space && runner.y <= 0.01) runner.vy = 20;
+  runner.vy -= 55 * dt; runner.y += runner.vy * dt; if (runner.y < 0){ runner.y = 0; runner.vy = 0; }
+  runner.t += dt * mv * .35;
+  g.position.y = runner.y + (mv > 1 ? Math.abs(Math.sin(runner.t)) * .9 : 0);
+  g.rotation.y = lerpAngle(g.rotation.y, mv > 1 ? Math.atan2(vx, vz || .001) : 0, 1 - Math.exp(-12 * dt));
+  g.rotation.z = Math.sin(runner.t * 2) * .08;
+}
+
+function animateChar(dt){
+  const u = player.userData, holdBlock = meterOn;
+  u.held.visible = holdBlock; u.dumb.visible = lifting;
+  if (holdBlock) u.held.rotation.y += dt * 1.2;
+  pst.kickAnim = Math.max(0, pst.kickAnim - dt);
+  if (lifting){
+    pst.rep += dt * 4.5;
+    const s = (1 - Math.cos(pst.rep)) / 2;
+    u.hips.position.y = 3 - 1.5 * s;
+    u.legL.scale.y = u.legR.scale.y = u.hips.position.y / 3;
+    u.legL.rotation.x = u.legR.rotation.x = 0;
+    u.armL.rotation.x = u.armR.rotation.x = -1.35;
+    u.dumb.position.y = 1.9 + .9 * (1 - s);
+    gs.kickPower += dt * 3;                                          // 屈伸するほどパワーが上がる
+  } else {
+    u.hips.position.y = 3; u.legL.scale.y = u.legR.scale.y = 1;
+    const spd = Math.hypot(pst.vel.x, pst.vel.z);
+    pst.walk += spd * dt * .5;
+    const sw = Math.sin(pst.walk) * Math.min(1, spd / 10) * .9;
+    u.legL.rotation.x = sw; u.legR.rotation.x = -sw;
+    if (holdBlock || state !== 'idle') u.armL.rotation.x = u.armR.rotation.x = -2.9;   // 持つ/応援
+    else { u.armL.rotation.x = -sw; u.armR.rotation.x = sw; }
+    if (pst.kickAnim > 0) u.legR.rotation.x = -1.4 * (pst.kickAnim / .45);
+  }
+  shadow.position.set(player.position.x, 0.06, player.position.z);
+}
+
+function update(dt){
+  if (state === 'flying'){
+    K.t = Math.min(1, K.t + dt / K.dur); const p = K.t;
+    flyBlock.position.set(K.sx + (K.landX - K.sx) * p, 2 + (1 - p) * 8 + 4 * K.peak * p * (1 - p), K.sz + (K.landZ - K.sz) * p);
+    flyBlock.rotation.x += dt * 8; flyBlock.rotation.z += dt * 5;
+    if (p >= 1) landBlock();
+  } else if (state === 'roulette'){
+    updateRoulette(dt);
+  } else if (state === 'escape'){
+    moveRunner(dt);
+    wave.front += wave.speed * dt; wave.t += dt; placeWave();
+    wave.body.scale.y = 1 + .05 * Math.sin(wave.t * 5);
+    const rz = runner.g.position.z;
+    if (wave.front >= rz - 1){ die(); }
+    else if (rz > LANE_START){ winEscape(); }
+    else {
+      const remain = LANE_START - rz, gap = rz - wave.front;
+      $('escapeText').textContent = `ゴールまで ${Math.ceil(remain)}m ／ 波まで ${Math.ceil(gap)}m ／ [C]視点切替`;
+      $('escapeFill').style.width = clamp((1 - remain / K.D) * 100, 0, 100) + '%';
+      $('escapeFill').style.background = gap < 15 ? '#e5484d' : '#2f9e44';
+      $('danger').style.boxShadow = `inset 0 0 160px 40px rgba(229,72,77,${(clamp((25 - gap) / 25, 0, 1) * .6).toFixed(2)})`;
+    }
+  } else {
+    movePlayer(dt);
+  }
+  if (state !== 'idle'){ pst.face = lerpAngle(pst.face, Math.PI, 1 - Math.exp(-8 * dt)); player.rotation.y = pst.face; }
+  // キックメーター（セーフゾーンに立つと自動で動く）
+  const was = meterOn;
+  meterOn = state === 'idle' && !lifting && inSafe();
+  if (meterOn){ if (!was) meterT = 0; meterT += dt / 1.4; meterVal = tri(meterT); }
+  checkPlate(dt);
+  animateChar(dt);
+  petMeshes.forEach(g => { g.position.y = .6 + Math.abs(Math.sin(performance.now() * .003 + g.userData.phase)) * .7; });
+  for (let i = parts.length - 1; i >= 0; i--){
+    const q = parts[i]; q.life -= dt; q.v.y -= 30 * dt; q.m.position.addScaledVector(q.v, dt);
+    if (q.m.position.y < .3){ q.m.position.y = .3; q.v.multiplyScalar(.4); }
+    if (q.life <= 0){ scene.remove(q.m); parts.splice(i, 1); }
+  }
+  labelTimer -= dt;
+  if (labelTimer <= 0){ labelTimer = .3; bankLabel.userData.set(['🏦 たまった金', fmt(gs.bank) + ' 金'], '#fde68a'); }
+}
+
+/* カメラ：逃走は三人称（キャラの後ろ）が基本。カメラは常に波の手前に留まり、波が視界を覆わない */
+function updateCamera(dt){
+  if (cam.goal !== null){
+    cam.yaw = lerpAngle(cam.yaw, cam.goal, 1 - Math.exp(-5 * dt));
+    const diff = Math.abs((((cam.goal - cam.yaw + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) - Math.PI);
+    if (diff < .02){ cam.yaw = cam.goal; cam.goal = null; }
+  }
+  camTarget.lerp(targetPos(), 1 - Math.exp(-12 * dt));
+  const d = cam.dist * cam.mul, cp = Math.cos(cam.pitch);
+  camera.position.set(camTarget.x + Math.sin(cam.yaw) * cp * d, Math.max(1.5, camTarget.y + Math.sin(cam.pitch) * d), camTarget.z + Math.cos(cam.yaw) * cp * d);
+  if (state === 'escape' && wave.group.visible) camera.position.z = Math.max(camera.position.z, wave.front + 3);
+  camera.lookAt(camTarget);
+}
+
+/* ================= HUD ================= */
+const setText = (id, v) => { const el = $(id); if (el._v !== v){ el._v = v; el.textContent = v; } };
+const setShow = (id, show, disp = 'block') => { const el = $(id); const v = show ? disp : 'none'; if (el.style.display !== v) el.style.display = v; };
+let meterKey = '';
+function updateUI(){
+  setText('uiMoney', fmt(gs.money)); setText('uiBank', fmt(gs.bank));
+  setText('uiPower', Math.floor(gs.kickPower)); setText('uiDist', maxKick());
+  setText('uiSpeed', gs.speedLevel); setText('uiPets', gs.pets.length); setText('uiInc', fmt(totalIncome()));
+  setText('uiDex', gs.dex.length);
+  const sb = $('speedBtn'), max = gs.speedLevel >= MAX_SPEED_LV;
+  setText('speedBtn', max ? 'スピード最大！' : `スピード強化 [R] — ${fmt(speedCost())}金`);
+  sb.disabled = max || gs.money < speedCost();
+  setShow('meterWrap', meterOn, 'flex');
+  if (meterOn){
+    const mk = maxKick(), D = kickDist(meterVal), zone = zoneOf(D);
+    if (meterKey !== String(mk)){            // メーターの色＝その位置で出やすいレアリティ
+      meterKey = String(mk);
+      const stops = [];
+      RANKS.forEach((R, i) => {
+        const fa = clamp((BANDS[i] - 60) / (mk - 60), 0, 1), fb = clamp((BANDS[i + 1] - 60) / (mk - 60), 0, 1);
+        if (fb > fa) stops.push(`${R.css} ${(fa * 100).toFixed(1)}% ${(fb * 100).toFixed(1)}%`);
+      });
+      $('meterBar').style.background = `linear-gradient(90deg,${stops.join(',')})`;
+    }
+    $('meterMark').style.left = (meterVal * 100) + '%';
+    setText('meterLane', `着地ゾーン：${RANKS[zone].n}（${BANDS[zone]}〜${BANDS[zone + 1]}m）`); $('meterLane').style.color = RANKS[zone].css;
+    setText('meterInfo', `パワー ${Math.round(meterVal * 100)}% → 飛距離 ${D}m（最大 ${mk}m）${meterVal >= .9 ? ' ★PERFECT' : ''} ／ 波の速さ ${Math.round(waveSpeed(D))}（推奨スピードLv.${recLv(D)}）`);
+  }
+  setShow('workStatus', lifting);
+  if (lifting) setText('workStatus', `💪 筋トレ中… パワー ${Math.floor(gs.kickPower)}（Qでやめる）`);
+}
+
+/* ================= メニュー・ログイン ================= */
+function hideMenu(){ $('menu').style.display = 'none'; $('hud').style.display = 'block'; }
+function showMenu(){ $('menu').style.display = 'flex'; renderMenu(); }
+function renderMenu(){
+  $('loginBtn').style.display = uid ? 'none' : 'flex';
+  $('playBox').style.display = uid && saveEnabled ? 'block' : 'none';
+  $('playBtn').textContent = started ? 'クリックして再開' : 'クリックして開始';
+  $('who').textContent = uid ? `${userName} さんでログイン中` : '';
+}
+$('loginBtn').addEventListener('click', () => {
+  $('menuMsg').textContent = '';
+  signInWithPopup(auth, new GoogleAuthProvider()).catch(e => $('menuMsg').textContent = 'ログインに失敗しました: ' + e.code);
+});
+$('signOut').addEventListener('click', async () => { await saveData(); await signOut(auth); location.reload(); });
+$('playBtn').addEventListener('click', () => {
+  if (dragMode){ running = true; started = true; hideMenu(); return; }
+  try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e){}
+});
+$('speedBtn').addEventListener('click', upgradeSpeed);
+
+onAuthStateChanged(auth, async u => {
+  if (!u){ uid = null; saveEnabled = false; $('hud').style.display = 'none'; showMenu(); return; }
+  uid = u.uid; userName = u.displayName || 'プレイヤー';
+  $('menuMsg').textContent = '';
+  await loadData();
+  lastTick = Date.now();
+  rebuildPets(); renderMenu();
+  if (offlineMsg){ setTimeout(() => showMessage('🏠 ' + offlineMsg, 4000, '#fde68a'), 800); offlineMsg = ''; }
+});
+
+/* ================= ループ ================= */
+let lastT = performance.now();
+(function loop(now){
+  requestAnimationFrame(loop);
+  const dt = Math.min(.05, (now - lastT) / 1000); lastT = now;
+  if (running) update(dt);
+  updateCamera(dt);
+  updateUI();
+  renderer.render(scene, camera);
+})(performance.now());
+renderMenu();
+</script>
+</body>
+</html>
