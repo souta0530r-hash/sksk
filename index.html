@@ -45,6 +45,21 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 #rouletteText{position:absolute;left:50%;top:16%;transform:translateX(-50%);display:none;font-size:clamp(28px,5vw,60px);font-weight:800;color:#fff;text-shadow:0 5px 0 var(--ink),0 0 16px rgba(0,0,0,.5);white-space:nowrap}
 #meterLane,#meterInfo{max-width:92vw;text-align:center}
 .card p.hint{font-size:12px;color:#445;margin:0 0 12px}
+#inv{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(20,33,61,.6);z-index:11}
+.invCard{background:#fff;border:4px solid var(--ink);border-radius:20px;box-shadow:0 8px 0 var(--ink);padding:20px 22px;width:min(94vw,720px);max-height:90vh;overflow:auto}
+.invCard h2{margin:0;font-size:22px}
+.invCard h3{margin:16px 0 6px;font-size:16px}
+.invCard .top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.invRow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:2px dashed #d8dce5;font-size:14px}
+.invRow b{flex:1;min-width:0}
+.invRow .chip{padding:2px 8px;border-radius:8px;font-size:12px;font-weight:800;color:#14213d;white-space:nowrap}
+.invRow .inc{font-weight:800;color:#b45309;white-space:nowrap}
+.invRow .btns{display:flex;gap:6px}
+.invRow button{font-size:12px;padding:4px 10px;box-shadow:0 3px 0 var(--ink)}
+.invCard .empty{font-size:13px;color:#667;padding:6px 0}
+.invCard .note{font-size:12px;color:#556;line-height:1.6;margin:12px 0 0}
+#meterLabels{display:flex;width:calc(min(560px,74vw) - 8px);font-size:13px;margin-top:-2px}
+#meterLabels span{text-align:center;overflow:hidden;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -59,6 +74,7 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
     <div>🏃 スピードLv（逃走中のみ）：<span id="uiSpeed">1</span></div>
     <div>👾 キャラ：<span id="uiPets">0</span>/10 ／ 収入 <span id="uiInc">0</span>/秒</div>
     <div>📖 図鑑：<span id="uiDex">0</span>/20</div>
+    <div>🎒 インベントリ：<span id="uiInv">0</span>/30 <span style="font-size:12px">[I]で開く</span></div>
     <button id="speedBtn">スピード強化 [R]</button>
   </div>
   <div id="escape"><div id="escapeText"></div><div class="track"><i id="escapeFill"></i></div></div>
@@ -69,9 +85,21 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
     <div id="meterWrap">
       <div id="meterLane"></div>
       <div class="meter" id="meterBar"><i id="meterMark"></i></div>
+      <div id="meterLabels"></div>
       <div id="meterInfo"></div>
     </div>
     <div id="workStatus"></div>
+  </div>
+</div>
+
+<div id="inv">
+  <div class="invCard">
+    <div class="top"><h2>インベントリ</h2><button id="invClose">閉じて再開 [I]</button></div>
+    <h3>基地のキャラ（<span id="invBaseN">0</span>/10）</h3>
+    <div id="invBase"></div>
+    <h3>持ち物（<span id="invN">0</span>/30）</h3>
+    <div id="invList"></div>
+    <p class="note">新しく手に入れたキャラは持ち物に入ります。「基地に置く」と、そのキャラが金を生み始めます。基地のキャラは「受け取る」で持ち物に戻せます。</p>
   </div>
 </div>
 
@@ -79,7 +107,7 @@ button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
   <div class="card">
     <h1>LUCKY BLOCK<br>TSUNAMI SURVIVAL</h1>
     <p>ダンベルでパワーを溜め、メーターを合わせて遠くへ蹴ろう。<br>着地したゾーンのレアリティのキャラが出る！ 出たキャラを操作して津波から逃げ切れ！</p>
-    <p class="hint">操作：WASD 移動 ／ Space ジャンプ ／ マウス 視点 ／ Q 筋トレ ／ E・クリック キック ／ R スピード強化 ／ C 視点切替（逃走中）</p>
+    <p class="hint">操作：WASD 移動 ／ Space ジャンプ ／ マウス 視点 ／ Q 筋トレ ／ E・クリック キック ／ R スピード強化 ／ I インベントリ ／ C 視点切替（逃走中）</p>
     <div id="who"></div>
     <button id="loginBtn">
       <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
@@ -120,7 +148,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const fmt = n => Math.floor(n).toLocaleString('ja-JP');
 
-const MAX_PETS = 10, MAX_SPEED_LV = 30;
+const MAX_PETS = 10, MAX_SPEED_LV = 30, INV_MAX = 30;
 const LANE_START = -40;            // セーフゾーンとレーンの境目(z)
 const LANE_LEN = 4000, LANE_W = 60, HALF_X = 28.5;
 const WAVE_GAP = 30;               // 出現時、波が背後にいる距離
@@ -140,7 +168,16 @@ const ZONE_LEN = 800;                              // 各レアリティゾー�
 const BANDS = [0, 800, 1600, 2400, 3200, 4000];    // コモン→レア→エピック→レジェンダリー→神話級
 
 const maxKick  = () => Math.min(3800, Math.round(60 + gs.kickPower * 8));   // キックパワー → 最大飛距離
-const kickDist = m => Math.round(60 + (maxKick() - 60) * m);                 // メーター位置 → 飛距離
+/* メーターは5段階。押した位置の段階で「最大飛距離に対する割合」が決まる（レアリティは着地ゾーンで決まる） */
+const GRADES = [
+  { n:'悪い',       to:.22, mult:.15, css:'#ef4444' },
+  { n:'中間',       to:.46, mult:.40, css:'#f59e0b' },
+  { n:'良い',       to:.70, mult:.65, css:'#84cc16' },
+  { n:'素晴らしい', to:.86, mult:.85, css:'#22d3ee' },
+  { n:'完璧',       to:1.01, mult:1,  css:'#ffc93c' }
+];
+const gradeOf   = m => GRADES.findIndex(g => m < g.to);
+const gradeDist = g => Math.round(60 + (maxKick() - 60) * GRADES[g].mult);
 const runSpeed  = () => 16 + 1.5 * (gs.speedLevel - 1);                      // 逃走中だけ反映されるスピード
 const speedCost = () => Math.floor(50 * Math.pow(1.5, gs.speedLevel - 1));
 const waveSpeed = D => 14 + D / 110;                                         // 遠いほど波も速い
@@ -188,7 +225,7 @@ const SP = [
 const rankFromInc = inc => [120, 50, 20, 8].findIndex(t => inc >= t) >= 0 ? 4 - [120, 50, 20, 8].findIndex(t => inc >= t) : 0;
 
 /* ================= セーブデータ ================= */
-const defaultState = () => ({ money:0, kickPower:10, speedLevel:1, pets:[], dex:[], bank:0, bestDist:0, lastSeen:0 });
+const defaultState = () => ({ money:0, kickPower:10, speedLevel:1, pets:[], inv:[], dex:[], bank:0, bestDist:0, lastSeen:0 });
 let gs = defaultState();
 let uid = null, userName = '', saveEnabled = false, started = false, offlineMsg = '';
 const totalIncome = () => gs.pets.reduce((s, p) => s + p.inc, 0);
@@ -210,7 +247,8 @@ async function loadData(){
         const pool = SP.map((s, i) => i).filter(i => SP[i].r === rankFromInc(p.inc));   // 旧データの互換
         return { sp:pool[Math.floor(Math.random() * pool.length)], inc:+p.inc };
       });
-      gs.dex = [...new Set([...(Array.isArray(gs.dex) ? gs.dex : []), ...gs.pets.map(p => p.sp)])].filter(i => SP[i]);
+      gs.inv = (Array.isArray(gs.inv) ? gs.inv : []).filter(p => p && Number.isInteger(p.sp) && SP[p.sp] && p.inc > 0).slice(0, INV_MAX).map(p => ({ sp:p.sp, inc:+p.inc }));
+      gs.dex = [...new Set([...(Array.isArray(gs.dex) ? gs.dex : []), ...gs.pets.map(p => p.sp), ...gs.inv.map(p => p.sp)])].filter(i => SP[i]);
       if (gs.lastSeen){
         const sec = Math.min(7200, (Date.now() - gs.lastSeen) / 1000), gain = totalIncome() * sec;
         if (gain >= 1){ gs.bank += gain; offlineMsg = `留守中に基地が ${fmt(gain)}金 稼いだ！`; }
@@ -405,7 +443,7 @@ let lifting = false, running = false, locked = false, dragMode = false;
 const keys = {};
 const cam = { yaw:0, pitch:.45, dist:17, mul:1, goal:null };
 const camTarget = new THREE.Vector3(0, 4.5, 30);
-let K = null, roul = null;
+let K = null, roul = null, invOpen = false;
 let meterT = 0, meterVal = 0, meterOn = false;
 
 const inSafe = () => player.position.z < 0 && player.position.z > LANE_START;
@@ -422,6 +460,7 @@ function showRoulette(text, color = '#fff'){
 }
 
 addEventListener('keydown', e => {
+  if (e.code === 'KeyI'){ if (!e.repeat){ if (invOpen) closeInventory(); else if (running) openInventory(); } return; }
   if (e.code === 'Escape' && dragMode && running){ running = false; showMenu(); return; }
   if (!running) return;
   keys[e.code] = true;
@@ -444,7 +483,7 @@ addEventListener('wheel', e => { if (running) cam.dist = clamp(cam.dist + Math.s
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
   if (locked){ running = true; started = true; hideMenu(); }
-  else if (!dragMode){ running = false; for (const k in keys) keys[k] = false; showMenu(); }
+  else if (!dragMode){ running = false; for (const k in keys) keys[k] = false; if (invOpen) showInv(); else showMenu(); }
 });
 document.addEventListener('pointerlockerror', () => { dragMode = true; running = true; started = true; hideMenu(); });
 
@@ -473,18 +512,61 @@ function targetPos(){
 }
 const snapCam = () => camTarget.copy(targetPos());
 
+/* ================= インベントリ ================= */
+function openInventory(){
+  if (state !== 'idle'){ showMessage('今はインベントリを開けない！', 1500, '#fca5a5'); return; }
+  lifting = false; invOpen = true; renderInv();
+  if (dragMode){ running = false; showInv(); } else document.exitPointerLock();
+}
+function closeInventory(){
+  invOpen = false; $('inv').style.display = 'none';
+  if (dragMode){ running = true; return; }
+  try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => showMenu()); } catch (e){ showMenu(); }
+}
+function showInv(){ $('inv').style.display = 'flex'; renderInv(); }
+function petRow(p, btns){
+  const R = RANKS[SP[p.sp].r], row = document.createElement('div'); row.className = 'invRow';
+  const chip = document.createElement('span'); chip.className = 'chip'; chip.textContent = R.n; chip.style.background = R.css;
+  const name = document.createElement('b'); name.textContent = SP[p.sp].n;
+  const inc = document.createElement('span'); inc.className = 'inc'; inc.textContent = `+${p.inc}/秒`;
+  const box = document.createElement('span'); box.className = 'btns';
+  btns.forEach(b => { const el = document.createElement('button'); el.textContent = b.t; el.disabled = !!b.off; el.addEventListener('click', b.fn); box.appendChild(el); });
+  row.append(chip, name, inc, box); return row;
+}
+function renderInv(){
+  $('invBaseN').textContent = gs.pets.length; $('invN').textContent = gs.inv.length;
+  const base = $('invBase'), list = $('invList'); base.textContent = ''; list.textContent = '';
+  const empty = (el, t) => { const d = document.createElement('div'); d.className = 'empty'; d.textContent = t; el.appendChild(d); };
+  if (!gs.pets.length) empty(base, '基地にキャラはいません');
+  gs.pets.forEach((p, i) => base.appendChild(petRow(p, [{ t:'受け取る', off:gs.inv.length >= INV_MAX, fn:() => takeFromBase(i) }])));
+  if (!gs.inv.length) empty(list, '持ち物は空です');
+  gs.inv.forEach((p, i) => list.appendChild(petRow(p, [
+    { t:gs.pets.length >= MAX_PETS ? '基地は満員' : '基地に置く', off:gs.pets.length >= MAX_PETS, fn:() => placeToBase(i) },
+    { t:`売る +${fmt(p.inc * 30)}金`, fn:() => sellItem(i) }
+  ])));
+}
+function takeFromBase(i){ if (gs.inv.length >= INV_MAX) return; gs.inv.push(gs.pets.splice(i, 1)[0]); afterInvChange(); }
+function placeToBase(i){ if (gs.pets.length >= MAX_PETS) return; gs.pets.push(gs.inv.splice(i, 1)[0]); afterInvChange(); }
+function sellItem(i){
+  const p = gs.inv[i], v = p.inc * 30;
+  if (!confirm(`${SP[p.sp].n} を ${fmt(v)}金 で売りますか？`)) return;
+  gs.inv.splice(i, 1); gs.money += v; afterInvChange();
+}
+function afterInvChange(){ rebuildPets(); renderInv(); saveData(); }
+$('invClose').addEventListener('click', closeInventory);
+
 /* メーターで止めてキック */
 function startKick(){
   if (!meterOn) return;
-  const D = kickDist(meterVal);
-  K = { D, m:meterVal, landX:rnd(-12, 12), landZ:LANE_START - D, sx:player.position.x, sz:player.position.z,
+  const g = gradeOf(meterVal), D = gradeDist(g);
+  K = { D, g, m:meterVal, landX:rnd(-12, 12), landZ:LANE_START - D, sx:player.position.x, sz:player.position.z,
         t:0, dur:Math.min(7, 2.4 + D / 450), peak:25 + D * .12 };
   gs.bestDist = Math.max(gs.bestDist, D);
   player.position.y = 0; pst.vy = 0; pst.vel.set(0, 0, 0); pst.kickAnim = .45;
   state = 'flying'; meterOn = false;
   flyBlock.visible = true; flyBlock.position.set(K.sx, 10, K.sz);
   cam.yaw = 0; cam.pitch = .4; cam.mul = 2; cam.goal = null; snapCam();
-  showMessage(`${D}m キック！！${K.m >= .9 ? ' PERFECT!' : ''}`, 2200, K.m >= .9 ? '#fde047' : '#fff');
+  showMessage(`${GRADES[g].n}！ ${D}m`, 2200, GRADES[g].css);
 }
 function pickSpecies(D){
   const r = zoneOf(D), pool = SP.map((s, i) => i).filter(i => SP[i].r === r);
@@ -570,12 +652,8 @@ function winEscape(){
   if (!gs.dex.includes(sp)) gs.dex.push(sp);
   const pet = { sp, inc };
   let msg;
-  if (gs.pets.length < MAX_PETS){ gs.pets.push(pet); msg = `生還！ ${SP[sp].n}（${R.n}）を基地に配置！ +${inc}/秒`; }
-  else {
-    let mi = 0; gs.pets.forEach((p, i) => { if (p.inc < gs.pets[mi].inc) mi = i; });
-    if (inc > gs.pets[mi].inc){ gs.pets[mi] = pet; msg = `生還！ 基地が満員なので弱いキャラと入れ替えた（+${inc}/秒）`; }
-    else { const bonus = inc * 30; gs.money += bonus; msg = `生還！ 基地が満員なのでボーナス ${fmt(bonus)}金！`; }
-  }
+  if (gs.inv.length < INV_MAX){ gs.inv.push(pet); msg = `生還！ ${SP[sp].n}（${R.n}）を入手！ +${inc}/秒 ／ [I]で基地に置こう`; }
+  else { const bonus = inc * 30; gs.money += bonus; msg = `生還！ インベントリが満員なのでボーナス ${fmt(bonus)}金！`; }
   showMessage(msg, 3800, R.css);
   rebuildPets(); saveData();
 }
@@ -699,7 +777,7 @@ function update(dt){
   // キックメーター（セーフゾーンに立つと自動で動く）
   const was = meterOn;
   meterOn = state === 'idle' && !lifting && inSafe();
-  if (meterOn){ if (!was) meterT = 0; meterT += dt / 1.4; meterVal = tri(meterT); }
+  if (meterOn){ if (!was) meterT = 0; meterT += dt / 1.8; meterVal = tri(meterT); }
   checkPlate(dt);
   animateChar(dt);
   petMeshes.forEach(g => { g.position.y = .6 + Math.abs(Math.sin(performance.now() * .003 + g.userData.phase)) * .7; });
@@ -729,30 +807,28 @@ function updateCamera(dt){
 /* ================= HUD ================= */
 const setText = (id, v) => { const el = $(id); if (el._v !== v){ el._v = v; el.textContent = v; } };
 const setShow = (id, show, disp = 'block') => { const el = $(id); const v = show ? disp : 'none'; if (el.style.display !== v) el.style.display = v; };
-let meterKey = '';
+(function initMeter(){        // 5段階の色と名前を、押す位置の幅どおりに表示
+  let acc = 0; const stops = [], labels = $('meterLabels');
+  GRADES.forEach(G => {
+    const to = Math.min(1, G.to); stops.push(`${G.css} ${(acc * 100).toFixed(1)}% ${(to * 100).toFixed(1)}%`);
+    const sp = document.createElement('span'); sp.textContent = G.n; sp.style.width = ((to - acc) * 100) + '%'; sp.style.color = G.css; labels.appendChild(sp); acc = to;
+  });
+  $('meterBar').style.background = `linear-gradient(90deg,${stops.join(',')})`;
+})();
 function updateUI(){
   setText('uiMoney', fmt(gs.money)); setText('uiBank', fmt(gs.bank));
   setText('uiPower', Math.floor(gs.kickPower)); setText('uiDist', maxKick());
   setText('uiSpeed', gs.speedLevel); setText('uiPets', gs.pets.length); setText('uiInc', fmt(totalIncome()));
-  setText('uiDex', gs.dex.length);
+  setText('uiDex', gs.dex.length); setText('uiInv', gs.inv.length);
   const sb = $('speedBtn'), max = gs.speedLevel >= MAX_SPEED_LV;
   setText('speedBtn', max ? 'スピード最大！' : `スピード強化 [R] — ${fmt(speedCost())}金`);
   sb.disabled = max || gs.money < speedCost();
   setShow('meterWrap', meterOn, 'flex');
   if (meterOn){
-    const mk = maxKick(), D = kickDist(meterVal), zone = zoneOf(D);
-    if (meterKey !== String(mk)){            // メーターの色＝その位置で出やすいレアリティ
-      meterKey = String(mk);
-      const stops = [];
-      RANKS.forEach((R, i) => {
-        const fa = clamp((BANDS[i] - 60) / (mk - 60), 0, 1), fb = clamp((BANDS[i + 1] - 60) / (mk - 60), 0, 1);
-        if (fb > fa) stops.push(`${R.css} ${(fa * 100).toFixed(1)}% ${(fb * 100).toFixed(1)}%`);
-      });
-      $('meterBar').style.background = `linear-gradient(90deg,${stops.join(',')})`;
-    }
+    const g = gradeOf(meterVal), D = gradeDist(g), zone = zoneOf(D);
     $('meterMark').style.left = (meterVal * 100) + '%';
-    setText('meterLane', `着地ゾーン：${RANKS[zone].n}（${BANDS[zone]}〜${BANDS[zone + 1]}m）`); $('meterLane').style.color = RANKS[zone].css;
-    setText('meterInfo', `パワー ${Math.round(meterVal * 100)}% → 飛距離 ${D}m（最大 ${mk}m）${meterVal >= .9 ? ' ★PERFECT' : ''} ／ 波の速さ ${Math.round(waveSpeed(D))}（推奨スピードLv.${recLv(D)}）`);
+    setText('meterLane', `${GRADES[g].n}！`); $('meterLane').style.color = GRADES[g].css;
+    setText('meterInfo', `飛距離 ${D}m（${RANKS[zone].n}ゾーン）／ 波の速さ ${Math.round(waveSpeed(D))}（推奨スピードLv.${recLv(D)}）`);
   }
   setShow('workStatus', lifting);
   if (lifting) setText('workStatus', `💪 筋トレ中… パワー ${Math.floor(gs.kickPower)}（Qでやめる）`);
